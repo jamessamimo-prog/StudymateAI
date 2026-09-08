@@ -1,4 +1,4 @@
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -23,7 +23,7 @@ module.exports = async function handler(req, res) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
     return res.status(500).json({
-      error: 'GEMINI_API_KEY is missing. Add it in Vercel Environment Variables and redeploy.',
+      error: 'GEMINI_API_KEY is missing. Add it in Vercel and redeploy.',
     });
   }
 
@@ -32,50 +32,74 @@ module.exports = async function handler(req, res) {
     if (typeof body === 'string') {
       try { body = JSON.parse(body || '{}'); } catch { body = {}; }
     }
-    body = body || {};
+    if (!body || typeof body !== 'object') body = {};
 
-    const prompt = body.prompt || '';
-    const system =
+    const prompt = String(body.prompt || '').trim();
+    const system = String(
       body.system ||
-      'You are StudyMate AI Tutor. Be clear, accurate, and structured. Answer the student question directly with useful detail.';
-
+        'You are StudyMate AI Tutor. Be clear, accurate, and structured.'
+    );
     if (!prompt) {
       return res.status(400).json({ error: 'prompt is required' });
     }
 
-    const model = body.model || 'gemini-3.6-flash';
-    const url =
-      'https://generativelanguage.googleapis.com/v1beta/models/' +
-      encodeURIComponent(model) +
-      ':generateContent?key=' +
-      encodeURIComponent(key);
+    const models = [
+      body.model,
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+    ].filter(Boolean);
 
-    const upstream = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-      }),
-    });
+    let lastError = 'All model attempts failed';
 
-    const data = await upstream.json();
-    if (!upstream.ok) {
-      return res.status(upstream.status).json({
-        error: (data && data.error && data.error.message) || 'Gemini request failed',
-      });
+    for (const model of models) {
+      try {
+        const url =
+          'https://generativelanguage.googleapis.com/v1beta/models/' +
+          encodeURIComponent(model) +
+          ':generateContent?key=' +
+          encodeURIComponent(key);
+
+        const upstream = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              { role: 'user', parts: [{ text: system + '\n\n' + prompt }] },
+            ],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+          }),
+        });
+
+        const data = await upstream.json().catch(() => ({}));
+        if (!upstream.ok) {
+          lastError =
+            (data && data.error && data.error.message) ||
+            'Gemini failed for ' + model;
+          continue;
+        }
+
+        const text =
+          data &&
+          data.candidates &&
+          data.candidates[0] &&
+          data.candidates[0].content &&
+          data.candidates[0].content.parts &&
+          data.candidates[0].content.parts[0] &&
+          data.candidates[0].content.parts[0].text;
+
+        if (text) {
+          return res.status(200).json({ text: text, model: model });
+        }
+        lastError = 'Empty response from ' + model;
+      } catch (e) {
+        lastError = e.message || String(e);
+      }
     }
 
-    const text =
-      data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    if (!text) {
-      return res.status(502).json({ error: 'Empty response from Gemini' });
-    }
-
-    return res.status(200).json({ text });
+    return res.status(502).json({ error: lastError });
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
-};
+                              }
