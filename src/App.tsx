@@ -357,7 +357,7 @@ export default function App() {
                     </Btn>
                     <Btn
                       size="lg"
-                      variant="outline"
+                      variant="outlineDark"
                       className="border-white/30 text-white hover:bg-white/10"
                       onClick={() => go('store')}
                     >
