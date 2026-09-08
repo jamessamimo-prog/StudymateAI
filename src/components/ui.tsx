@@ -19,7 +19,7 @@ export function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
   );
 }
 
-type BtnVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'soft';
+type BtnVariant = 'primary' | 'secondary' | 'outline' | 'outlineDark' | 'ghost' | 'danger' | 'soft';
 
 export function Btn({
   children,
@@ -32,19 +32,21 @@ export function Btn({
   size?: 'sm' | 'md' | 'lg';
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center gap-2 rounded-xl transition focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50 disabled:cursor-not-allowed';
   const sizes = {
     sm: 'px-3 py-1.5 text-xs',
     md: 'px-4 py-2.5 text-sm',
     lg: 'px-6 py-3 text-base',
   };
   const variants: Record<BtnVariant, string> = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-600/20',
-    secondary: 'bg-brand-900 text-white hover:bg-brand-950',
-    outline: 'border-2 border-brand-200 text-brand-800 bg-white hover:bg-brand-50',
-    ghost: 'text-slate-600 hover:bg-slate-100',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
-    soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100',
+    primary: 'bg-brand-600 text-white hover:bg-brand-700 shadow-md shadow-brand-600/20 font-semibold',
+    secondary: 'bg-brand-900 text-white hover:bg-brand-950 font-semibold',
+    outline: 'border-2 border-brand-200 text-brand-800 bg-white hover:bg-brand-50 font-semibold',
+    outlineDark:
+      'border-2 border-white text-white bg-white/15 font-semibold hover:bg-white/25 hover:font-extrabold',
+    ghost: 'text-slate-600 hover:bg-slate-100 font-semibold',
+    danger: 'bg-red-600 text-white hover:bg-red-700 font-semibold',
+    soft: 'bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold',
   };
   return (
     <button className={`${base} ${sizes[size]} ${variants[variant]} ${className}`} {...props}>
@@ -110,4 +112,4 @@ export function Badge({
       {children}
     </span>
   );
-}
+  }
